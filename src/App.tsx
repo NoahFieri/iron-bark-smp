@@ -302,7 +302,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: "A new traveller seeks entry! (Vote below)", // Optional: Replace ID with your staff role ID
+          content: "A new traveller seeks entry! @everyone (Vote below)",
           embeds: [embed]
         }),
       });
