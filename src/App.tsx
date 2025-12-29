@@ -329,7 +329,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
     } catch (error) {
       console.error('Error sending webhook:', error);
       // Show error but allow manual copy-paste as fallback
-      setStatus('error');
+      //setStatus('error');
     }
   };
 
