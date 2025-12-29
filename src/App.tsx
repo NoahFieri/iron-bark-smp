@@ -326,11 +326,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
           throw new Error(errorMessage);
         }
       }
-    } catch (error) {
-      console.error('Error sending webhook:', error);
-      // Show error but allow manual copy-paste as fallback
-      //setStatus('error');
-    }
+    } 
   };
 
   const handleSubmit = (e: React.FormEvent) => {
