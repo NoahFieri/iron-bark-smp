@@ -42,64 +42,86 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const message = await webhookResponse.json();
     const messageId = message.id;
 
+    // If message was sent but we can't get the ID, still return success
+    // The webhook message was delivered successfully
     if (!messageId) {
-      console.error('No message ID in response:', message);
-      return res.status(500).json({ error: 'Failed to get message ID' });
+      console.warn('No message ID in response, but webhook was sent:', message);
+      // Still return success since the message was sent
+      return res.status(200).json({
+        success: true,
+        messageId: null,
+        message: 'Webhook sent successfully (message ID unavailable)',
+        reactionsAdded: {
+          up: false,
+          down: false,
+        },
+      });
     }
 
     // Add reactions using bot token (webhooks cannot add reactions)
     let upReaction, downReaction;
     
-    if (BOT_TOKEN) {
-      // Wait a moment for Discord to process the message before adding reactions
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Try to add reactions, but don't fail the request if this doesn't work
+    try {
+      if (BOT_TOKEN) {
+        // Wait a moment for Discord to process the message before adding reactions
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Get channel ID from the message
-      const channelId = message.channel_id;
-      
-      // Discord requires emojis to be URL-encoded in the path
-      const upArrow = encodeURIComponent('⬆️');
-      const downArrow = encodeURIComponent('⬇️');
-
-      // Add reactions using bot token via REST API
-      // Format: PUT /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me
-      try {
-        // Add up arrow reaction
-        upReaction = await fetch(
-          `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/${upArrow}/@me`,
-          {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bot ${BOT_TOKEN}`,
-            },
-          }
-        );
+        // Get channel ID from the message
+        const channelId = message.channel_id;
         
-        if (!upReaction.ok) {
-          const upError = await upReaction.text();
-          console.error('Failed to add up arrow reaction:', upError, upReaction.status);
-        }
+        if (channelId) {
+          // Discord requires emojis to be URL-encoded in the path
+          const upArrow = encodeURIComponent('⬆️');
+          const downArrow = encodeURIComponent('⬇️');
 
-        // Add down arrow reaction
-        downReaction = await fetch(
-          `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/${downArrow}/@me`,
-          {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bot ${BOT_TOKEN}`,
-            },
+          // Add reactions using bot token via REST API
+          // Format: PUT /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me
+          try {
+            // Add up arrow reaction
+            upReaction = await fetch(
+              `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/${upArrow}/@me`,
+              {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bot ${BOT_TOKEN}`,
+                },
+              }
+            );
+            
+            if (!upReaction.ok) {
+              const upError = await upReaction.text();
+              console.error('Failed to add up arrow reaction:', upError, upReaction.status);
+            }
+
+            // Add down arrow reaction
+            downReaction = await fetch(
+              `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/${downArrow}/@me`,
+              {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bot ${BOT_TOKEN}`,
+                },
+              }
+            );
+            
+            if (!downReaction.ok) {
+              const downError = await downReaction.text();
+              console.error('Failed to add down arrow reaction:', downError, downReaction.status);
+            }
+          } catch (reactionErr) {
+            console.error('Error adding reactions:', reactionErr);
+            // Don't throw - reactions are optional
           }
-        );
-        
-        if (!downReaction.ok) {
-          const downError = await downReaction.text();
-          console.error('Failed to add down arrow reaction:', downError, downReaction.status);
+        } else {
+          console.warn('No channel_id in webhook response - cannot add reactions');
         }
-      } catch (err) {
-        console.error('Error adding reactions:', err);
+      } else {
+        console.warn('DISCORD_BOT_TOKEN not set - reactions will not be added automatically. Webhooks cannot add reactions.');
       }
-    } else {
-      console.warn('DISCORD_BOT_TOKEN not set - reactions will not be added automatically. Webhooks cannot add reactions.');
+    } catch (reactionError) {
+      console.error('Error in reaction handling:', reactionError);
+      // Don't fail the request - the webhook message was sent successfully
     }
 
     // Return success even if reactions fail (message was sent)
