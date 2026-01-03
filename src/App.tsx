@@ -326,6 +326,10 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
           throw new Error(errorMessage);
         }
       }
+      } catch (error) {
+      console.error('Submission error:', error);
+      setStatus('error');
+    }
     } 
   };
 
