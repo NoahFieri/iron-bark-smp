@@ -371,8 +371,8 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
             Welcome, traveler. Fill out this parchment to request entry.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <TextInput label="Discord Username" name="discordName" value={formData.discordName} onChange={handleChange} placeholder="username#0000" />
-             <TextInput label="Minecraft IGN" name="ign" value={formData.ign} onChange={handleChange} placeholder="Steve" />
+             <TextInput label="Discord Username" name="discordName" value={formData.discordName} onChange={handleChange} placeholder="username#0000" required/>
+             <TextInput label="Minecraft IGN" name="ign" value={formData.ign} onChange={handleChange} placeholder="Steve" required/>
           </div>
         </div>
 
