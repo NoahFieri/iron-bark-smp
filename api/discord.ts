@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// SECURITY NOTE: Use Environment Variables in Vercel for these!
-const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+// SECURITY NOTE: We read the full URL from the environment variable.
+const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL; 
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 // CRITICAL: Disable the default body parser.
@@ -18,18 +18,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Check if the environment variable is set
+  if (!WEBHOOK_URL) {
+    console.error('Missing DISCORD_WEBHOOK_URL environment variable');
+    return res.status(500).json({ error: 'Server Configuration Error: DISCORD_WEBHOOK_URL is missing in Vercel Settings' });
+  }
+
   try {
     // 2. Forward the request stream directly to Discord
-    // We pass the raw 'req' stream. This works efficiently for both JSON and large Files.
     const webhookResponse = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {
-        // We MUST forward the Content-Type header. 
-        // For files, this contains the 'boundary' string which Discord needs to parse the file.
+        // We MUST forward the Content-Type header (contains the 'boundary' for files)
         'Content-Type': req.headers['content-type'] as string,
       },
       // @ts-ignore: Node's fetch supports passing an IncomingMessage (req) as the body stream
       body: req,
+      // IMPORTANT: 'duplex: half' is REQUIRED when streaming the body in Node.js 18+ (Vercel)
+      // @ts-ignore: Type definition might not have duplex yet
+      duplex: 'half',
     });
 
     if (!webhookResponse.ok) {
@@ -39,12 +46,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 3. Get the Message ID to add reactions
-    // Note: If we just streamed a file, waiting for the JSON response confirms Discord received it.
-    const message = await webhookResponse.json();
+    let message;
+    try {
+        message = await webhookResponse.json();
+    } catch (e) {
+        // Webhooks sometimes return 204 No Content (empty body)
+    }
 
     // 4. Optional: Add Reactions (Only works if BOT_TOKEN is set)
-    if (BOT_TOKEN && message.id && message.channel_id) {
-       // We don't await this to keep the response fast for the user
+    if (BOT_TOKEN && message && message.id && message.channel_id) {
        addReactions(message.channel_id, message.id, BOT_TOKEN).catch(console.error);
     }
 
@@ -52,7 +62,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error) {
     console.error('Server Error:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    // Return the actual error message for debugging
+    return res.status(500).json({ 
+        error: 'Internal Server Error', 
+        details: error instanceof Error ? error.message : String(error) 
+    });
   }
 }
 
