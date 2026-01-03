@@ -701,7 +701,7 @@ Image: ${screenshot ? screenshot.name : 'None'}
             <input
               type="file"
               ref={fileInputRef}
-              accept="image/*"
+              accept=".png, .jpg, .jpeg"
               onChange={handleImageChange}
               className="hidden"
             />
