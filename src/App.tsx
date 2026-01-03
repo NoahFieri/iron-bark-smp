@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Check, Volume2, Shield, Clock, Users, Terminal, Sword, AlertTriangle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Check, Volume2, Shield, Clock, Users, Terminal, Sword, AlertTriangle, Loader2, Image as ImageIcon, X } from 'lucide-react';
 
 // --- CONFIGURATION ---
 const DISCORD_WEBHOOK_URL = "/api/discord"; 
@@ -172,6 +172,11 @@ export default function IronBarkApp() {
     finalVibeAnswer: ''
   });
 
+  // State for image handling
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [status, setStatus] = useState('idle'); // idle, sending, success, error
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -181,8 +186,34 @@ export default function IronBarkApp() {
     setMounted(true);
   }, []);
 
+  // Cleanup object URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
+    };
+  }, [screenshotPreview]);
+
   const handleChange = (name: string, value: string | string[] | number) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      // Basic validation: limit to images and size (e.g., 5MB)
+      if (file.size > 8 * 1024 * 1024) {
+        alert("File too large! Keep it under 8MB.");
+        return;
+      }
+      setScreenshot(file);
+      setScreenshotPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const clearImage = () => {
+    setScreenshot(null);
+    setScreenshotPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const generateReport = () => {
@@ -225,6 +256,9 @@ Age Group: ${formData.ageGroup}
 
 [VIBE CHECK]
 Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
+
+[ATTACHMENT]
+Image: ${screenshot ? screenshot.name : 'None'}
     `.trim();
   };
 
@@ -273,6 +307,8 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
           inline: false
         }
       ],
+      // If we have an image, we can try to reference it in the embed if we use multipart/form-data
+      // image: screenshot ? { url: `attachment://${screenshot.name}` } : undefined,
       footer: {
         text: "Iron Bark Application System • React to Vote"
       },
@@ -280,18 +316,37 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
     };
 
     try {
-      // Artificial delay to show off the cool loading animation
       await new Promise(resolve => setTimeout(resolve, 1500));
+
+      let body: any;
+      let headers: any = {};
+
+      if (screenshot) {
+        // If there is a file, we MUST use FormData to send it to Discord
+        const formDataPayload = new FormData();
+        // The JSON payload must be sent as a string under the 'payload_json' key
+        formDataPayload.append('payload_json', JSON.stringify({
+           content: "A new traveller seeks entry! @everyone (Vote below)",
+           embeds: [embed]
+        }));
+        // Attach the file
+        formDataPayload.append('file', screenshot);
+        
+        body = formDataPayload;
+        // Do NOT set Content-Type header for FormData; the browser sets it with the boundary
+      } else {
+        // Standard JSON payload
+        body = JSON.stringify({
+          content: "A new traveller seeks entry! @everyone (Vote below)",
+          embeds: [embed]
+        });
+        headers['Content-Type'] = 'application/json';
+      }
 
       const response = await fetch(DISCORD_WEBHOOK_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: "A new traveller seeks entry! @everyone (Vote below)",
-          embeds: [embed]
-        }),
+        headers: headers,
+        body: body,
       });
 
       const responseData = await response.json().catch(() => ({}));
@@ -302,6 +357,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
         if (response.status === 500) {
           setStatus('success');
         } else {
+          // If 400 Bad Request, it might be the proxy failing to handle FormData
           throw new Error(responseData.error || 'Unknown error');
         }
       }
@@ -633,8 +689,60 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
           onChange={handleChange}
           multiline
         />
+        
+        {/* --- SHOWCASE SECTION --- */}
+        <SectionHeader icon={ImageIcon} title="Showcase" delay="0.85s" />
+        <div className="mb-6">
+          <label className={STYLES.label} style={{ fontFamily: MINECRAFT_FONT }}>
+            Show us something you've built or a cool screenshot:
+          </label>
+          
+          <div className="relative group cursor-pointer">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            
+            {screenshotPreview ? (
+              <div className="relative w-full max-w-md mx-auto mt-4 border-4 border-[#2c3e50] bg-[#1a1210] shadow-lg transform transition-transform group-hover:scale-[1.02]">
+                <img 
+                  src={screenshotPreview} 
+                  alt="Preview" 
+                  className="w-full h-auto max-h-[400px] object-contain" 
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearImage();
+                  }}
+                  className="absolute -top-3 -right-3 bg-[#c0392b] text-white p-1 border-2 border-[#fff] shadow-md hover:bg-[#e74c3c]"
+                >
+                  <X size={20} />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2 text-white text-xs truncate font-mono">
+                  {screenshot?.name}
+                </div>
+              </div>
+            ) : (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-40 border-4 border-dashed border-[#7f8c8d] bg-[#1a1210]/50 flex flex-col items-center justify-center gap-2 hover:bg-[#1a1210]/80 hover:border-[#c0392b] transition-all duration-300 rounded-sm"
+              >
+                <ImageIcon size={48} className="text-[#7f8c8d] group-hover:text-[#c0392b] transition-colors" />
+                <p className="text-[#ecf0f1] text-lg opacity-80" style={{ fontFamily: MINECRAFT_FONT }}>
+                  Click or Drop Image Here
+                </p>
+                <p className="text-[#7f8c8d] text-sm">Max 8MB</p>
+              </div>
+            )}
+          </div>
+        </div>
 
-        <div className="mb-6 group">
+        <div className="mb-6 group mt-8">
            <label className={`${STYLES.label} group-hover:text-[#c0392b] transition-colors`} style={{ fontFamily: MINECRAFT_FONT }}>On a scale of 1–10, how seriously do you take Minecraft?</label>
            <input 
              type="range" 
