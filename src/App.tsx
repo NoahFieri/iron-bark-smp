@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Analytics } from "@vercel/analytics/next";
 import { Check, Volume2, Shield, Clock, Users, Terminal, Sword, AlertTriangle, Loader2, Image as ImageIcon, X } from 'lucide-react';
 
 // --- CONFIGURATION ---
