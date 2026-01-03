@@ -734,7 +734,7 @@ Image: ${screenshot ? screenshot.name : 'None'}
               >
                 <ImageIcon size={48} className="text-[#7f8c8d] group-hover:text-[#c0392b] transition-colors" />
                 <p className="text-[#ecf0f1] text-lg opacity-80" style={{ fontFamily: MINECRAFT_FONT }}>
-                  Click or Drop Image Here
+                  Click or Drop Image Here (optional)
                 </p>
                 <p className="text-[#7f8c8d] text-sm">Max 8MB</p>
               </div>
