@@ -1,8 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // SECURITY NOTE: Use Environment Variables in Vercel for these!
-// const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1455015990231433237/VzoD8Y_qppt605m2bS1OaHRz3GPOGoisGxj5Hp2e_QqW2CC1Az6jioUNVe0nJ_1v5wdT';
+const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 // CRITICAL: Disable the default body parser.
