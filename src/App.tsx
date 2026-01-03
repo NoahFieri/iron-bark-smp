@@ -3,7 +3,6 @@ import { Check, Volume2, Shield, Clock, Users, Terminal, Sword, AlertTriangle } 
 import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURATION ---
-// This path triggers the rewrite rule in vercel.json to hide your real Webhook URL
 const DISCORD_WEBHOOK_URL = "/api/discord"; 
 
 // --- Assets & Styles ---
@@ -140,17 +139,21 @@ interface TextInputProps {
   onChange: (name: string, value: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  required?: boolean; // Updated to accept required prop
 }
 
-const TextInput = ({ label, name, value, onChange, placeholder = '', multiline = false }: TextInputProps) => (
+const TextInput = ({ label, name, value, onChange, placeholder = '', multiline = false, required = false }: TextInputProps) => (
   <div className="mb-6">
-    <label className={STYLES.label} style={{ fontFamily: MINECRAFT_FONT }}>{label}</label>
+    <label className={STYLES.label} style={{ fontFamily: MINECRAFT_FONT }}>
+      {label} {required && <span className="text-[#c0392b]">*</span>}
+    </label>
     {multiline ? (
       <textarea
         name={name}
         value={value}
         onChange={(e) => onChange(name, e.target.value)}
         placeholder={placeholder}
+        required={required}
         className={`${STYLES.input} w-full h-24 resize-y text-lg`}
         style={{ fontFamily: MINECRAFT_FONT }}
       />
@@ -161,6 +164,7 @@ const TextInput = ({ label, name, value, onChange, placeholder = '', multiline =
         value={value}
         onChange={(e) => onChange(name, e.target.value)}
         placeholder={placeholder}
+        required={required}
         className={`${STYLES.input} w-full text-lg`}
         style={{ fontFamily: MINECRAFT_FONT }}
       />
@@ -190,7 +194,7 @@ export default function IronBarkApp() {
     economy: '',
     altruism: '',
     altruismWhy: '',
-    humor: [],
+    humor: [] as string[],
     lines: '',
     banned: '',
     antiPersona: '',
@@ -326,11 +330,10 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
           throw new Error(errorMessage);
         }
       }
-      } catch (error) {
+    } catch (error) {
       console.error('Submission error:', error);
       setStatus('error');
     }
-    } 
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -375,8 +378,22 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
             Welcome, traveler. Fill out this parchment to request entry.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <TextInput label="Discord Username" name="discordName" value={formData.discordName} onChange={handleChange} placeholder="username#0000" required/>
-             <TextInput label="Minecraft IGN" name="ign" value={formData.ign} onChange={handleChange} placeholder="Steve" required/>
+             <TextInput 
+                label="Discord Username" 
+                name="discordName" 
+                value={formData.discordName} 
+                onChange={handleChange} 
+                placeholder="username#0000" 
+                required 
+             />
+             <TextInput 
+                label="Minecraft IGN" 
+                name="ign" 
+                value={formData.ign} 
+                onChange={handleChange} 
+                placeholder="Steve" 
+                required 
+             />
           </div>
         </div>
 
@@ -524,7 +541,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
         <CheckboxGroup
           label="What kind of humor do you bring? (Select all that apply)"
           name="humor"
-          values={formData.humor}
+          value={formData.humor}
           onChange={handleChange}
           options={["Dry", "Dark", "Dumb", "Wholesome", "Unhinged (within reason)"]}
         />
@@ -571,7 +588,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
              min="1" 
              max="10" 
              value={formData.seriousness} 
-             onChange={(e) => handleChange('seriousness', e.target.value)}
+             onChange={(e) => handleChange('seriousness', parseInt(e.target.value))}
              className="w-full accent-[#c0392b] cursor-pointer h-4 bg-[#7f8c8d] appearance-none rounded-none border-2 border-[#2c3e50] mb-2"
            />
            <div className="text-center font-bold text-2xl mb-2 text-[#c0392b]" style={{ fontFamily: MINECRAFT_FONT }}>{formData.seriousness}</div>
@@ -590,14 +607,14 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
         <div className="mb-6">
            <label className={STYLES.label} style={{ fontFamily: MINECRAFT_FONT }}>Pick one of these — they're brutal in a quiet way:</label>
            <select 
-              value={formData.finalVibeQuestion} 
-              onChange={(e) => handleChange('finalVibeQuestion', e.target.value)}
-              className={`${STYLES.input} w-full mb-4 cursor-pointer`}
-              style={{ fontFamily: MINECRAFT_FONT }}
+             value={formData.finalVibeQuestion} 
+             onChange={(e) => handleChange('finalVibeQuestion', e.target.value)}
+             className={`${STYLES.input} w-full mb-4 cursor-pointer`}
+             style={{ fontFamily: MINECRAFT_FONT }}
            >
-              <option value="A">A. "Describe your ideal night on the server in one paragraph."</option>
-              <option value="B">B. "Why do you think some people hate hardcore servers?"</option>
-              <option value="C">C. "What would make you leave this server?"</option>
+             <option value="A">A. "Describe your ideal night on the server in one paragraph."</option>
+             <option value="B">B. "Why do you think some people hate hardcore servers?"</option>
+             <option value="C">C. "What would make you leave this server?"</option>
            </select>
            
            <TextInput
@@ -644,7 +661,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
               
               <div className="flex flex-col gap-3">
                  <MCButton onClick={() => setStatus('idle')}>
-                    Close
+                   Close
                  </MCButton>
               </div>
            </div>
@@ -670,7 +687,7 @@ Question ${formData.finalVibeQuestion}: ${formData.finalVibeAnswer}
               </MCButton>
                <div className="mt-4">
                <MCButton onClick={() => setStatus('idle')}>
-                    Close
+                   Close
                  </MCButton>
                </div>
            </div>
