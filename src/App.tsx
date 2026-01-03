@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 import { Check, Volume2, Shield, Clock, Users, Terminal, Sword, AlertTriangle, Loader2, Image as ImageIcon, X } from 'lucide-react';
 
 // --- CONFIGURATION ---
@@ -391,6 +391,7 @@ Image: ${screenshot ? screenshot.name : 'None'}
 
   return (
     <div className={`min-h-screen relative font-sans pb-32 overflow-x-hidden`}>
+      <Analytics />
       <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
       
       {/* BACKGROUND IMAGE CONTAINER */}
